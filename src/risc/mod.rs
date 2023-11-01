@@ -4,45 +4,42 @@ use reglock::RegLock;
 use traits::reg::Reg;
 
 
-pub struct RiscV<T: Reg> { 
+pub struct RiscV<T: Reg, const N_BYTES: usize> { 
     x: [RegLock<T>; 32],
     pc: RegLock<T>,
+    mem: [u8; N_BYTES],
 }
 
 
-impl RiscV<u32> {
-    pub fn new() -> Self {
+impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
+    pub fn new(n_bytes: usize) -> Self {
         let mut new = Self {
-            x: [RegLock::<u32>::default(); 32],
-            pc: RegLock::<u32>::default(),
-        };
-        new.x[0].lock();
-        new
-    }
-}
-impl RiscV<u64> {
-    pub fn new() -> Self {
-        let mut new = Self {
-            x: [RegLock::<u64>::default(); 32],
-            pc: RegLock::<u64>::default(),
-        };
-        new.x[0].lock();
-        new
-    }
-}
-impl RiscV<u128> {
-    pub fn new() -> Self {
-        let mut new = Self {
-            x: [RegLock::<u128>::default(); 32],
-            pc: RegLock::<u128>::default(),
+            x: [RegLock::<T>::default(); 32],
+            pc: RegLock::<T>::default(),
+            mem: [0; N_BYTES],
         };
         new.x[0].lock();
         new
     }
 }
 
-impl<T: Reg> RiscV<T> {
-    
+
+enum MemoryError {
+    Unitialized,
+    OutOfBounds,
+    AlreadyInitialized,
+}
+
+impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
+    pub const fn mem(&self, elem: usize) -> Result<u8,MemoryError>{
+
+                if elem < self.mem.len() {
+                    Ok(self.mem[elem])
+                }
+                else {
+                    Err(MemoryError::OutOfBounds)
+                }
+    }
 }
 
 
