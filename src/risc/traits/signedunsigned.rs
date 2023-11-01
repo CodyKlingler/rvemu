@@ -1,28 +1,5 @@
 use num_traits::{Signed, Unsigned};
-use num_traits::ops::wrapping::*;
-use core::ops::{BitXor, BitAnd, BitOr, Shl, Shr};
-use core::cmp::{PartialEq, PartialOrd};
-
-pub trait Reg: 
-  Clone +
-  Default +
-  Copy +
-  WrappingAdd + 
-  WrappingSub + 
-  WrappingMul + 
-  BitXor<Output = Self> + 
-  BitAnd<Output = Self> + 
-  BitOr<Output = Self> +
-  Shl<Output = Self>  + 
-  Shr<Output = Self>  +
-  PartialEq +
-  PartialOrd +
-  USMinMax + // implemented here
-  SignedUnsigned + //implemented here
-{}
-
-
-
+use super::reg::Reg;
 pub trait USMinMax {
     /// `11111..`
     fn umax() -> Self;
@@ -37,8 +14,9 @@ pub trait USMinMax {
 }
 
 pub trait SignedUnsigned { 
-    type Signed: Reg + Signed;
-    type Unsigned: Reg + Unsigned;
+    type Signed: Signed + Reg; 
+    // +Reg included so the returned type of as_signed may have all of the Reg operations used on it
+    type Unsigned: Unsigned + Reg;
     fn as_signed(&self) -> Self::Signed;
     fn as_unsigned(&self) -> Self::Unsigned;
 }
@@ -91,13 +69,3 @@ impl_usminmax_and_signedunsigned ! {
     u64, i64,
     u128, i128
 }
-
-
-impl Reg for u16 {}
-impl Reg for u32 {}
-impl Reg for u64 {}
-impl Reg for u128 {}
-impl Reg for i16 {}
-impl Reg for i32 {}
-impl Reg for i64 {}
-impl Reg for i128 {}

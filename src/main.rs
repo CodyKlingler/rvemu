@@ -1,10 +1,4 @@
-#![no_std]
-use crate::risc::*;
-pub mod risc;
+mod risc;
+pub fn main() {
 
-fn main() {
-
-    let mut m = RiscV::<u64>::new();
 }
-
-

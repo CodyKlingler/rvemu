@@ -1,4 +1,4 @@
-use super::Reg;
+use super::traits::reg::Reg;
 use core::ops::Deref;
 
 #[derive(Debug, Copy, Clone, Default)]
