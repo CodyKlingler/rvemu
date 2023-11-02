@@ -2,6 +2,8 @@ use num_traits::ops::wrapping::*;
 use core::ops::{BitXor, BitAnd, BitOr, Shl, Shr};
 use core::cmp::{PartialEq, PartialOrd};
 use super::signedunsigned::*;
+use num_traits::{FromBytes, ToBytes, ToPrimitive};
+use num_traits::cast::FromPrimitive;
 
 pub trait Reg: 
   Clone +
@@ -19,6 +21,8 @@ pub trait Reg:
   PartialOrd +
   USMinMax + // implemented here
   SignedUnsigned + //implemented here
+  FromPrimitive +
+  FromBytes +
 {
     fn add(&self, v2: Self) -> Self {
         self.wrapping_add(&v2)

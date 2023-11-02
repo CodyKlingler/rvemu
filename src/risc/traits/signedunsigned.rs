@@ -1,5 +1,7 @@
 use num_traits::{Signed, Unsigned};
 use super::reg::Reg;
+
+
 pub trait USMinMax {
     /// `11111..`
     fn umax() -> Self;
@@ -69,3 +71,33 @@ impl_usminmax_and_signedunsigned ! {
     u64, i64,
     u128, i128
 }
+
+
+// likely not needed
+
+// pub trait RegSize {
+//     fn size() -> usize;
+// }
+
+// macro_rules! impl_regsize {
+//     ($($t:ty, $bytes:literal),*) => {
+//         $(
+//             impl RegSize for $t {
+//                 fn size() -> usize {
+//                     $bytes
+//                 }
+//             }
+//         )*
+//     };
+// }
+
+// impl_regsize! {
+//     u16, 16,
+//     i16, 16,
+//     u32, 32,
+//     i32, 32,
+//     u64, 64,
+//     i64, 64, 
+//     u128, 128,
+//     i128, 128
+// }
