@@ -1,5 +1,6 @@
 mod reglock;
 mod traits;
+use num_traits::ToBytes;
 use reglock::RegLock;
 use traits::reg::Reg;
 use core::mem::size_of;
@@ -133,6 +134,14 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
         else {
             Err(MemoryError::OutOfBounds)
         }
+    }
+    
+    /// store half-word
+    pub fn sh(&mut self, data: T, addr: usize) -> Result<(), MemoryError> {
+        for (offset, byte) in data.to_le_bytes().iter().enumerate() {
+            self.sb(byte, addr + offset)?;
+        }
+        Ok(())
     }
 }
 

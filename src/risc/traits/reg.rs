@@ -23,6 +23,7 @@ pub trait Reg:
   SignedUnsigned + //implemented here
   FromPrimitive +
   FromBytes +
+  //ToBytes<Bytes = >>
 {
     fn add(&self, v2: Self) -> Self {
         self.wrapping_add(&v2)
