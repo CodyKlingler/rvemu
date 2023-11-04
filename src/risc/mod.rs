@@ -65,15 +65,11 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
         let mut r = T::umin();
         for i in 0.. n{
             let byte = self.get_byte(addr+i)?;
-            if let Some(byte_t) = T::from_u8(byte) {
-                if let Some(n_shifts) = T::from_usize(8*i) {
-                    r = r | (byte_t << n_shifts);
-                } else {
-                    return Err(MemoryError::ConversionFailure)
-                }
-            } else {
-                return Err(MemoryError::ConversionFailure)
-            }   
+            let byte_t = T::from_u8(byte)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+            let n_shifts = T::from_usize(8*i)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+            r = r | (byte_t << n_shifts);
         }
         Ok(r)
     }
@@ -81,46 +77,44 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
     /// load byte (signed) 
     pub fn lb(&self, addr:usize) -> Result<T,MemoryError>{
         let byte = self.get_byte(addr)?;
-        if let Some(ret) = T::from_u8(byte) {
-            let loooooo = T::one() << T::from_u8(7) // binary 1000 0000
+        let ret = T::from_u8(byte).ok_or_else(|| MemoryError::ConversionFailure)?;
+        let loooooo = T::one() << T::from_u8(7) // binary 1000 0000
+            .ok_or_else(|| MemoryError::ConversionFailure)?;
+        let byte_is_negative = ret & loooooo == loooooo;
+        if byte_is_negative {
+            let ooollllllll = T::from_u8(u8::MAX)
                 .ok_or_else(|| MemoryError::ConversionFailure)?;
-            if ret & loooooo == loooooo { // if sign is negative
-                Ok(T::umax() &  ret)
-            }
-            else {
-                Ok(ret)
-            }
-        } else {
-            Err(MemoryError::ConversionFailure)
+            let llloooooooo = ooollllllll ^ T::umax();
+            Ok(llloooooooo |  ret)
+        }
+        else {
+            Ok(ret)
         }
     }
 
-    fn load_n_bytes(&self, addr: usize, n: usize) -> Result<T,MemoryError>{
-        let msb = T::from_u8(self.get_byte(addr+n-1)?)
-            .ok_or_else(|| MemoryError::ConversionFailure)?;
+    fn load_n_bytes(&self, addr: usize, n_bytes: usize) -> Result<T,MemoryError>{
 
-        let loooooo = T::one() << T::from_u8(7) // binary 1000 0000
-            .ok_or_else(|| MemoryError::ConversionFailure)?;
-        
-        let is_negative = msb & loooooo == loooooo;
+        let mut r = T::umin(); // r = 0
 
-        let mut r = if is_negative {T::umax()} else {T::umin()};
-        for i in 0.. n{
+        // load each byte into r
+        for i in 0.. n_bytes{
             let byte = self.get_byte(addr+i)?;
-            if let Some(byte_t) = T::from_u8(byte) {
-                if let Some(n_shifts) = T::from_usize(8*i) {
-                    r = if is_negative { 
-                        r & (byte_t << n_shifts)
-                    } else {
-                        r | (byte_t << n_shifts)
-                    }
-                } else {
-                    return Err(MemoryError::ConversionFailure)
-                }
-            } else {
-                return Err(MemoryError::ConversionFailure)
-            }   
+            let byte_t = T::from_u8(byte)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+            let n_shifts = T::from_usize(8*i)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+            r = r | (byte_t << n_shifts)
         }
+
+        // If msb of half-word is 1, the leading bits should be 1 to maintain the negative sign 
+        let loooooo = T::one() << T::from_usize(n_bytes*8-1)
+            .ok_or_else(|| MemoryError::ConversionFailure)?;// MSB mask
+        let is_negative = r & loooooo == loooooo;
+        if is_negative {
+            r = r | T::umax() << T::from_usize(n_bytes*8)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+        }
+
         Ok(r)
     }
 
@@ -181,9 +175,9 @@ pub mod test {
         assert_eq!(cpu.lbu(0)?, 0x0);
         assert_eq!(cpu.lh(0)?,  0xFFFF_FF00);
         assert_eq!(cpu.lhu(0)?, 0x0000_FF00);
-        assert_eq!(cpu.lw(0)?,  0xFFFF_FFFF);
+        assert_eq!(cpu.lw(0)?,  0xFFFF_FF00);
 
-        cpu.sb(i8::MIN as u8, 100)?;
+        cpu.sb(i8::MIN as u8, 100)?;  // 0x80 at addr[100]
         assert_eq!(cpu.lb(100)?,  0xFFFF_FF80);
         assert_eq!(cpu.lbu(100)?, 0x0000_0080);
         assert_eq!(cpu.lh(100)?,  0x0000_0080);
@@ -192,7 +186,8 @@ pub mod test {
 
         assert_eq!(cpu.lh(99)?,  0xFFFF8000);
         assert_eq!(cpu.lhu(99)?, 0x00008000);     
-        assert_eq!(cpu.lw(100)?, 0x00008000);     
+        assert_eq!(cpu.lw(99)?, 0x00008000);    
+        assert_eq!(cpu.lw(100)?, 0x00000080); 
 
         Ok(())
     }
