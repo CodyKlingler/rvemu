@@ -1,5 +1,5 @@
 use super::traits::reg::Reg;
-use core::ops::Deref;
+use core::ops::{Deref, AddAssign};
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct RegLock<T: Reg + Default> {
@@ -26,9 +26,16 @@ impl<T:Default + Reg> RegLock<T> {
     }
 }
 
-impl<T:Reg + Default> Deref for RegLock<T> {
+impl<T:Reg> Deref for RegLock<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.p
+    }
+}
+
+impl<T: Reg> AddAssign<T> for RegLock<T> {
+    fn add_assign(&mut self, other: T) {
+        let v = self.get() + other;
+        self.set(v);
     }
 }
