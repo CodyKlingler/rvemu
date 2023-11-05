@@ -135,7 +135,6 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
         }
     }
 
-
     pub fn store_n_bytes(&mut self, data: T, addr: usize, n_bytes: usize) -> Result<(), MemoryError> {
         let byte_mask = T::from(u8::MAX)
                 .ok_or_else(|| MemoryError::ConversionFailure)?;
@@ -195,6 +194,9 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
 
     // put these in bitops
     // consider capturing PC and rd and &mut T so that rd doesnt have to be set by the decoder
+
+    
+    
 }
 
 
