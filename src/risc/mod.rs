@@ -1,5 +1,6 @@
 mod reglock;
 mod traits;
+use num_traits::ToBytes;
 use reglock::RegLock;
 use traits::reg::Reg;
 use core::mem::size_of;
@@ -62,7 +63,7 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
 
     /// load `n` bytes (unsigned)
     fn load_n_bytes_u(&self, addr: usize, n: usize) -> Result<T,MemoryError>{
-        let mut r = T::umin();
+        let mut r = T::zero();
         for i in 0.. n{
             let byte = self.get_byte(addr+i)?;
             let byte_t = T::from_u8(byte)
@@ -82,10 +83,9 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
             .ok_or_else(|| MemoryError::ConversionFailure)?;
         let byte_is_negative = ret & loooooo == loooooo;
         if byte_is_negative {
-            let ooollllllll = T::from_u8(u8::MAX)
+            let llloooooooo = !T::from_u8(u8::MAX)
                 .ok_or_else(|| MemoryError::ConversionFailure)?;
-            let llloooooooo = ooollllllll ^ T::umax();
-            Ok(llloooooooo |  ret)
+            Ok(llloooooooo|  ret)
         }
         else {
             Ok(ret)
@@ -94,7 +94,7 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
 
     fn load_n_bytes(&self, addr: usize, n_bytes: usize) -> Result<T,MemoryError>{
 
-        let mut r = T::umin(); // r = 0
+        let mut r = T::zero(); // r = 0
 
         // load each byte into r
         for i in 0.. n_bytes{
@@ -134,6 +134,67 @@ impl<T: Reg, const N_BYTES: usize> RiscV<T, N_BYTES> {
             Err(MemoryError::OutOfBounds)
         }
     }
+
+
+    pub fn store_n_bytes(&mut self, data: T, addr: usize, n_bytes: usize) -> Result<(), MemoryError> {
+        let byte_mask = T::from(u8::MAX)
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+
+        for i in 0.. n_bytes {
+            let byte = byte_mask & (data >> (i*8));
+            let byte_u8 = byte.to_u8()
+                .ok_or_else(|| MemoryError::ConversionFailure)?;
+            self.sb(byte_u8, addr + i)?;    
+        }
+        Ok(())
+    }
+
+    pub fn sh(&mut self, data: T, addr: usize) -> Result<(), MemoryError> {
+        self.store_n_bytes(data, addr, size_of::<T>()/2)
+    }
+
+    pub fn sw(&mut self, data: T, addr: usize) -> Result<(), MemoryError> {
+        self.store_n_bytes(data, addr, size_of::<T>())
+    }
+
+    pub fn beq(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1 == rs2 {
+            self.pc += imm;
+        }
+    }
+
+    pub fn bne(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1 != rs2 {
+            self.pc += imm;
+        }
+    }
+
+    pub fn blt(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1.as_signed() < rs2.as_signed() {
+            self.pc += imm;
+        }
+    }
+
+    pub fn bge(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1.as_signed() >= rs2.as_signed() {
+            self.pc += imm;
+        }
+    }
+
+    pub fn bltu(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1.as_unsigned() < rs2.as_unsigned() {
+            self.pc += imm;
+        }
+    }
+
+    pub fn bgeu(&mut self, rs1: T, rs2: T, imm: T) {
+        if rs1.as_unsigned() >= rs2.as_unsigned() {
+            self.pc += imm;
+        }
+    }
+
+    // put these in bitops
+    // consider capturing PC and rd and &mut T so that rd doesnt have to be set by the decoder
 }
 
 
@@ -188,6 +249,12 @@ pub mod test {
         assert_eq!(cpu.lhu(99)?, 0x00008000);     
         assert_eq!(cpu.lw(99)?, 0x00008000);    
         assert_eq!(cpu.lw(100)?, 0x00000080); 
+
+        cpu.sh(0x34AB_CDEF, 50)?;
+        assert_eq!(cpu.lw(50)?, 0x0000_CDEF);
+
+        cpu.sw(0x34AB_CDEF, 70)?;
+        assert_eq!(cpu.lw(70)?, 0x34AB_CDEF);
 
         Ok(())
     }

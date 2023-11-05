@@ -1,26 +1,24 @@
 use num_traits::ops::wrapping::*;
-use core::ops::{BitXor, BitAnd, BitOr, Shl, Shr};
+use core::ops::{Shl, Shr};
 use core::cmp::{PartialEq, PartialOrd};
 use super::signedunsigned::*;
-use num_traits::{FromBytes, ToBytes, ToPrimitive};
+use num_traits::{FromBytes, ToBytes, ToPrimitive, PrimInt};
 use num_traits::cast::FromPrimitive;
 
 pub trait Reg: 
   Clone +
   Default +
   Copy +
+  PrimInt +
   WrappingAdd + 
   WrappingSub + 
   WrappingMul + 
-  BitXor<Output = Self> + 
-  BitAnd<Output = Self> + 
-  BitOr<Output = Self> +
   Shl<Output = Self>  + 
   Shr<Output = Self>  +
   PartialEq +
   PartialOrd +
-  USMinMax + // implemented here
   SignedUnsigned + //implemented here
+  USMinMax +
   FromPrimitive +
   FromBytes +
 {
@@ -95,6 +93,7 @@ pub trait Reg:
             Self::umin()
         }
     }
+
 }
 
 

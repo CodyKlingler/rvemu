@@ -1,8 +1,7 @@
+mod risc;
 use risc::RiscV;
 
-mod risc;
-
-
+// Not sure if my code works on Big-Endian machines
 
 pub fn main() {
     

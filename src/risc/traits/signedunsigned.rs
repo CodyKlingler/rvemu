@@ -11,8 +11,6 @@ pub trait USMinMax {
     fn smin() -> Self;
     /// `01111..`
     fn smax() -> Self;
-    /// `..0001`
-    fn one() -> Self;
 }
 
 pub trait SignedUnsigned { 
@@ -32,14 +30,12 @@ macro_rules! impl_usminmax_and_signedunsigned {
                 fn umin() -> Self { <$t>::MIN }
                 fn smax() -> Self { <$signed_t>::MAX as Self }
                 fn smin() -> Self { <$signed_t>::MIN as Self }
-                fn one()  -> Self { 1 as $t }
             }
             impl USMinMax for $signed_t {
                 fn umax() -> Self { <$t>::MAX as Self}
                 fn umin() -> Self { <$t>::MIN as Self}
                 fn smax() -> Self { <$signed_t>::MAX  }
                 fn smin() -> Self { <$signed_t>::MIN  }
-                fn one()  -> Self { 1 as $signed_t }
             }
             impl SignedUnsigned for $t {
                 type Signed = $signed_t;
